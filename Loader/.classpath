@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/commons-cli-1.2.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/commons-lang3-3.0.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/guava-12.0.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jetty-continuation-7.6.1.v20120215.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jetty-http-7.6.1.v20120215.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jetty-io-7.6.1.v20120215.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jetty-server-7.6.1.v20120215.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jetty-util-7.6.1.v20120215.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jline-2.10.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jna.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/jsch-0.1.48.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/log4j-1.2.16.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/protobuf-java-2.4.1.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/servlet-api-2.5.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/slf4j-api-1.6.2.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/slf4j-nop-1.6.2.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/snappy-java-1.0.5-M3.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/voltdb-3.1.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/voltdbclient-3.1.jar"/>
+	<classpathentry kind="lib" path="/opt/voltdb/lib/zmq-2.1.11.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Read & Write</title>
+<style>
+body {
+	    font-family: Verdana, sans-serif;
+	    font-size: 9pt;
+	    line-height: 14pt;
+	    background: #ffffff;
+	    color: #555555;
+	}
+.lineArea {
+        fill: none;
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+</style>
+<body>
+<script src="../jquery1.7.2.js"></script>
+<script src="../d3.js"></script>
+<div id="paired-bar-chart">
+<script type="text/javascript">
+
+var ReadWriteProcedures = [];
+
+var data = d3.range(10).map(Math.random);
+var data = [0, 0];
+var colorlist = ["#F78181", "steelblue"];
+var labellist = ["Read","Write"];
+
+var w = 815,
+    h = 160,
+    labelpad = 165,
+    x = d3.scale.linear().domain([0, 100]).range([0, w]),
+    y = d3.scale.ordinal().domain(d3.range(data.length)).rangeBands([0, h], .2);
+	
+var xAxisBar = d3.svg.axis().scale(x).tickFormat(function(d) {
+          return d;
+        }).orient("bottom");
+var yAxisBar = d3.svg.axis().scale(y).orient("left");		
+var vis = d3.select("#paired-bar-chart")
+  .append("svg:svg")
+    .attr("width", w + 200)
+    .attr("height", h + 20)
+  .append("svg:g")
+    .attr("transform", "translate(-40,0)");
+
+vis.append("g")
+		.attr("class", "x axis")
+		.attr("transform", "translate(0," + h+20 + ")")
+		.call(xAxisBar);
+		
+var bars = vis.selectAll("g.bar")
+	.data(data)
+	.enter().append("svg:g")
+    .attr("class", "bar")
+    .attr("transform", function(d, i) { return "translate(" + labelpad + "," + y(i) + ")"; });
+
+bars.append("svg:rect")
+	.attr("fill", function(d, i) { return colorlist[i % 2]; } )   //Alternate colors
+    .attr("width", x)
+    .attr("height", y.rangeBand());
+
+bars.append("svg:text")
+    .attr("x", 0)
+    .attr("y", 10 + y.rangeBand() / 2)
+    .attr("dx", -6)
+    .attr("dy", ".35em")
+    .attr("text-anchor", "end")
+    .text(function(d, i) { return labellist[i]; });
+
+
+var rules = vis.selectAll("g.rule")
+    .data(x.ticks(10))
+  .enter().append("svg:g")
+    .attr("class", "rule")
+    .attr("transform", function(d) { return "translate(" + x(d) + ", 0)"; });
+
+rules.append("svg:line")
+    .attr("y1", h)
+    .attr("y2", h + 6)
+    .attr("x1", labelpad)
+    .attr("x2", labelpad)
+    .attr("stroke", "black");
+
+rules.append("svg:line")
+    .attr("y1", 0)
+    .attr("y2", h)
+    .attr("x1", labelpad)
+    .attr("x2", labelpad)
+    .attr("stroke", "white")
+    .attr("stroke-opacity", .3);
+
+
+rules.append("svg:text")
+    .attr("y", h + 8)
+    .attr("x", labelpad)
+    .attr("dy", ".71em")
+    .attr("text-anchor", "middle")
+    .text(x.tickFormat(10));
+
+	function GetReadWriteProcedures(response)
+	{
+		for(var i=0;i<response.results[0].data.length;i++)
+		{		
+		    var tmp = eval('('+response.results[0].data[i][6]+')');
+			var name = {proc_name:response.results[0].data[i][2],read : tmp.readOnly};
+			ReadWriteProcedures.push(name);		
+		}
+	}
+	$.getJSON('http://localhost:8080/api/1.0/?Procedure=@SystemCatalog&Parameters=[PROCEDURES]&jsonp=?',
+          {},GetReadWriteProcedures);
+    
+	function MyCallBack(response)
+	{
+			var readData = 0;
+			var writeData = 0;
+			for(var i=0;i<response.results[0].data.length;i++)
+			{
+				for(var j=0;j<ReadWriteProcedures.length;j++)
+				{
+					if((response.results[0].data[i][5]).toString().indexOf(ReadWriteProcedures[j].proc_name) != -1 )
+					{
+						if(ReadWriteProcedures[j].read)
+							readData += response.results[0].data[i][6];
+						else
+							writeData += response.results[0].data[i][6];
+						break;	
+					}
+				}				
+			}
+			if(readData == 0)
+				writeData = 100;			
+			if(writeData == 0)
+				readData = 100;
+			else if(writeData != 100)
+			{
+				writeData = Math.round(((readData+writeData)/writeData)*100);
+				readData = 100-writeData; 
+			}
+			data = [readData, writeData];
+			var bars = vis.selectAll("rect.bar")
+				.data(data)
+
+			//update
+			bars
+				.attr("fill", function(d, i) { return colorlist[i % 2]; } ) 
+
+			//enter
+			bars.enter()
+				.append("svg:rect")
+				.attr("class", "bar")
+				.attr("fill", function(d, i) { return colorlist[i % 2]; } )
+
+
+			//exit 
+			bars.exit()
+			.transition()
+			.duration(300)
+			.ease("exp")
+				.attr("width", 0)
+				.remove()
+			
+			bars
+				.attr("stroke-width", 4)
+				.transition()
+				.duration(300)
+				.ease("quad")
+				.attr("width", x)
+				.attr("height", y.rangeBand())
+				.attr("transform", function(d, i) { return "translate(" + labelpad + "," + y(i) + ")"; });
+			
+			/*var transition = bars.transition().duration(1000);
+			transition.selectAll("rect").attr("x", function(d) { return d; });
+			rect.exit().remove();*/
+			//alert($("#bar-id-0").width());
+			//alert($("#bar-id-0").width());
+			//alert($('#bar-id-0').css());
+			//$('#bar-id-0').css('width', '90%');
+			//alert($("#bar-id-0"));
+			//$("#bar-id-0").animate({width:"200px"});
+			/*$("#bar-id").remove();
+			bars = vis.selectAll("g.bar")
+				.attr("id","bar-id")
+				.data(data)
+				.enter().append("svg:g")
+				.attr("class", "bar")
+				.attr("transform", function(d, i) { return "translate(" + labelpad + "," + y(i) + ")"; });
+			
+			bars.append("svg:rect")
+				.attr("fill", function(d, i) { return colorlist[i % 2]; } )   
+				.attr("width", x)
+				.attr("height", y.rangeBand());
+			bars.append("svg:text")
+				.attr("x", 0)
+				.attr("y", 10 + y.rangeBand() / 2)
+				.attr("dx", -6)
+				.attr("dy", ".35em")
+				.attr("text-anchor", "end")
+				.text(function(d, i) { return labellist[i]; });	*/
+	}
+	setInterval(function() {
+      $.getJSON('http://localhost:8080/api/1.0/?Procedure=@Statistics&Parameters=[PROCEDURE,0]&jsonp=?',
+          {},MyCallBack);	
+          
+	}, 1000);
+	
+</script>

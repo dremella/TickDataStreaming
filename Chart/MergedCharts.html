@@ -1,0 +1,1634 @@
+<html>
+	<head>
+		<title>Charts</title>
+			<script src="d3.js"></script>
+			<script src="jquery1.7.2.js"></script>
+			<script src="merged- line-graph.js"></script>
+			<link rel="stylesheet" href="style.css" type="text/css">
+			<link rel="stylesheet" type="text/css" href="jquery.css">
+			<script type="text/javascript" src="jquery.easyui.min.js"></script>
+<style>
+	body {
+	    font-family: Verdana, sans-serif;
+	    font-size: 7pt;
+	    line-height: 14pt;
+	    background: #ffffff;
+	    color: #555555;
+	}
+
+    .axis path, .axis line {
+        fill: none;
+        stroke: #555555;
+        shape-rendering: crispEdges;
+    }
+
+    .lineArea {
+        fill: none;
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+
+    .bar {
+        stroke: #333333;
+        stroke-width: 1px;
+        fill: steelblue;
+        shape-rendering: crispEdges;
+    }
+	.area.above {
+	  fill: rgb(145,207,96);
+	}		
+	.area.below {
+	  fill: rgb(252,141,89);
+	}
+	p {
+		clear:both;
+		top: 20px;
+	}		
+			
+	div.aGraph {
+		margin-bottom: 10px;
+	}
+	
+	#chart, #header, #footer {
+
+            position: absolute;
+
+            top: 0;
+
+        }
+
+
+
+        #header, #footer {
+
+            z-index: 1;
+
+            display: block;
+
+            font-size: 36px;
+
+            font-weight: 300;
+
+            text-shadow: 0 1px 0 #fff;
+
+        }
+
+
+
+        #header.inverted, #footer.inverted {
+
+            color: #fff;
+
+            text-shadow: 0 1px 4px #000;
+
+        }
+
+
+
+        #header {
+
+            top: 80px;
+
+            left: 140px;
+
+            width: 1200px;
+
+        }
+
+
+
+        #footer {
+
+            top: 680px;
+
+            right: 140px;
+
+            text-align: right;
+
+        }
+
+
+
+        rect {
+
+            pointer-events: all;
+
+            cursor: pointer;
+
+        }
+
+
+
+        .chart {
+
+            display: block;
+
+            margin: auto;
+
+            margin-top: 40px;
+
+        }
+
+
+
+        .parent .label {
+
+            color: #FFFFFF;
+
+            padding-left: 2px;
+
+            padding-top: 2px;
+
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+
+            -webkit-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+
+            -moz-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+
+        }
+
+
+
+        .labelbody {
+
+            background: transparent;
+
+        }
+
+
+
+        .label {
+
+            padding: 2px;
+
+            white-space: pre;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+
+            -webkit-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+
+            -moz-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+
+        }
+
+
+
+        .child .label {
+
+            white-space: pre-wrap;
+
+            text-align: center;
+
+            text-overflow: ellipsis;
+
+        }
+
+
+
+        .cell {
+
+            font-size: 11px;
+
+            cursor: pointer
+
+        }
+        
+</style>
+<script>
+  $(function() {
+    $( "#tabs" ).tabs();
+  });
+  </script>
+</head>
+<body style="background-color:#FAFAFA;">
+<!-- <div>
+<img src="blackrock-logo.png" alt="Black Rock" height="12">
+</div> -->
+<DIV align="left" width="100%">
+<FONT color="#045FB4" style="font-weight: bold;font-size: 10.5px">Client Name : </FONT><input type="text" id="clientname">
+<FONT color="#045FB4" style="font-weight: bold;font-size: 10.5px"> Select ETF : </FONT>
+ 	<select id="selectName" name="selectName" onchange="NameChange()" style="width: 150px" >
+	<option value="" selected="selected" ></option>
+</select>
+<input type="radio" id="buy" name="rad" value="B" checked=true><FONT color="#045FB4" style="font-weight: bold;font-size: 10.5px"> Buy </FONT>
+	<input type="radio" id="sell" name="rad" value="S"><FONT color="#045FB4" style="font-weight: bold;font-size: 10.5px"> Sell </FONT>
+	<FONT color="#045FB4" style="font-weight: bold;font-size: 10.5px">&nbsp;&nbsp;&nbsp;Notional : </FONT><input type="text" id="notional">
+	<input type="button" value="Submit" onclick="SubmitClick()">	
+	<a href="Trade/AllCharts.html" target="_blank"><FONT color="#045FB4" style="font-weight: bold;font-size: 10.5px">Performance</FONT></a>
+</DIV>
+&nbsp;
+<div id="tab-1" class="easyui-tabs" width="100%" height="100%">	
+	<div title="Graph" >
+		<div style="float:left;width:49%;">
+			<DIV id="chartArea">
+			</DIV>
+			<div id="chartLine" class="aGraph" style="position:relative;height:30%">
+			</div>
+			<DIV id="chartBar"">
+			</DIV>
+		</div>
+		<div style="float:right;width:49%;">
+			<DIV id="chartHeatMap" >
+			</DIV>
+		</div>	
+	</div>
+	<div title="Activity Log" width="100%" height="100%">
+		<table id="ActivityLogID" title="Activity Log" class="easyui-datagrid" width="100%" height="100%"
+				pagination="true" singleSelect="true" toolbar="#tb" >
+			<thead>
+				<tr>
+					<th field="RANK" width="150"><b>Rank</b></th>
+					<th field="ETF_NAME" width="150"><b>ETF</b></th>
+					<th field="TRADE_VALUE" width="150"><b>Total Notional ($)</b></th>
+					<th field="REQUEST" width="150"><b>Total Client Request</b></th>
+					<th field="COUNT" width="150"><b>BUY/SELL</b></th		
+				</tr>
+			</thead>
+		</table>
+	</div>
+  </div>
+
+    <div id="tb" style="padding-left:20px">  
+        <span>ETF:</span>  
+        <input id="etfid" style="width:150px;line-height:26px;border:1px solid #ccc">    	
+        <a href="#" class="easyui-linkbutton" plain="true" onclick="doSearch()">Search</a>  
+    </div>  
+<script>
+	function doSearch(){  
+		if($('#etfid').val() != '')
+		{
+			var tempActivityJsonData = [];
+			for(var i=0;i<ActivityJsonData.length;i++)
+			{
+				if(ActivityJsonData[i].ETF_NAME.toString().toLowerCase() == $('#etfid').val())
+				{
+					tempActivityJsonData.push(ActivityJsonData[i]);
+				}
+			}
+			$('#ActivityLogID').datagrid('loadData', tempActivityJsonData);
+		}
+		else
+			$('#ActivityLogID').datagrid('loadData', ActivityJsonData);
+		
+    }  
+	var buyresponse = null;
+		var ActivityJsonData = [];
+		var commonArray = [];
+		function getActivityJsonData(){
+			$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["select etf_name,sum(trade_value) as trade_value,count(etf_name) as request,buy_sell, count(buy_sell) as buy_count  from  activity_log where buy_sell = \'B\' group by  etf_name , buy_sell ORDER BY trade_value DESC "]&jsonp=?',
+			{},function(response){
+			buyresponse = response;
+			$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["select etf_name,sum(trade_value) as trade_value,count(etf_name) as request,buy_sell, count(buy_sell) as buy_count  from  activity_log where buy_sell = \'S\' group by  etf_name , buy_sell ORDER BY trade_value DESC"]&jsonp=?',
+			{},function(sellresponse){
+				ActivityJsonData = [];
+				commonArray = [];
+				var buydata =  buyresponse.results[0].data;
+				for(var i = 0; i < buydata.length; i++){
+						commonArray.push(buydata[i]);
+				}
+				var selldata = sellresponse.results[0].data;
+				for(var i = 0; i < selldata.length; i++){
+						commonArray.push(selldata[i]);
+				}
+				
+				for(var i = 0; i < commonArray.length; i++){
+					var splitdatai = String(commonArray[i]).split(",");
+					var jsnSingleAry = null;
+					for(var j = i+1; j < commonArray.length; j++){	
+					
+						var splitdataj = String(commonArray[j]).split(",");
+						
+						if(splitdatai[0] == splitdataj[0]){
+							jsnSingleAry = { 
+											RANK : i+1,
+											ETF_NAME: splitdatai[0], 
+											TRADE_VALUE: parseInt(splitdatai[1]) - parseInt(splitdataj[1]),
+											REQUEST	: parseInt(splitdatai[2]) + parseInt(splitdataj[2]), 
+											BUY_SELL : splitdatai[3]+" / " + splitdataj[3],
+											COUNT : splitdatai[4]+" / " + splitdataj[4]
+							};		
+						}	
+					}
+					if(jsnSingleAry != null)
+					{
+						ActivityJsonData.push(jsnSingleAry);
+					}
+					else
+					{
+						var isExists = true;
+						for(var k=0;k<ActivityJsonData.length;k++)
+						{
+							if(splitdatai[0] == ActivityJsonData[k].ETF_NAME)
+							{
+								isExists = false;
+							}
+						}
+						if(isExists)
+						{
+							ActivityJsonData.push({ 
+								RANK : i+1,
+								ETF_NAME: splitdatai[0], 
+								TRADE_VALUE: splitdatai[1],
+								REQUEST	: splitdatai[2], 
+								BUY_SELL : splitdatai[3],
+								COUNT : splitdatai[4]
+							});
+						}
+								
+					}
+				}
+				$('#ActivityLogID').datagrid('loadData', ActivityJsonData);
+			});
+			});
+		}
+	
+		$(document).ready(function () {
+				getActivityJsonData();
+			var pager = $('#ActivityLogID').datagrid('getPager');    
+			pager.pagination({  
+				showPageList:false, 
+				onBeforeRefresh:function(){  
+					getActivityJsonData();
+					return true;  
+				}  
+			});  
+		});
+		
+	// for line chart
+	
+	var zerosArray = [];
+	var l1 = null;	
+	var ddlVal = '';
+	var premiumVal = 0;
+	var updatedXValue = null;
+	
+	var incrementTime = 120000;		
+	var n = 70;
+	
+	function addOption(selectId, value, text, selected) {
+	    var html = '<option value="'+value+'">'+text+'</option>';
+	    $('#'+selectId).append(html);
+	}
+	$.getJSON('http://localhost:8080/api/1.0/?Procedure=GetETF&jsonp=?',
+	  {},function(response)
+	  {
+	  	for(var i = 0; i<response.results[0].data.length;i++)
+		{
+			addOption('selectName', response.results[0].data[i], response.results[0].data[i], 'off');
+		}
+	});
+	function SubmitClick()
+	{
+		var	str = 	"'"+document.getElementById('clientname').value.toString()+"' ,'"+document.getElementById('selectName').value.toString()+"' , "+document.getElementById('notional').value.toString()+", '"+(document.getElementById('buy').checked==true?"B":"S")+"', "+premiumVal+",0,'"+new Date().getTime()+"'";
+		$.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=[\"insert into activity_log values("+str+")\"]",
+                cache: false,
+                dataType: "json",
+                success: function(response) {alert('Saved Successfully');},
+				error:function(response) {alert('Saved Successfully');}
+        });
+		
+	}
+	function NameChange()
+	{
+		ddlVal = document.getElementById("selectName").value;
+		data = null;
+		GraphData = [];
+		/*var	str = 	"'"+document.getElementById('clientname').value.toString()+"' ,'"+document.getElementById('selectName').value.toString()+"' ,0,'',"+premiumVal+",0,'"+new Date().getTime()+"'";
+		$.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=[\"insert into activity_log values("+str+")\"]",
+                cache: false,
+                dataType: "json",
+                success: function(response) {},
+				error:function(response) {}
+        });	*/	
+		$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["  select top 1 symbol,time, trade_price, trade_volume,created_on from trades where symbol=\''+document.getElementById("selectName").value+'\' order by created_on "]&jsonp=?',
+		  {},function(response)
+		  {
+			 if(response.results[0] != undefined && response.results[0].data[0] != undefined)
+			 {			 	
+				//for bar chart				
+				t = response.results[0].data[0][4]-(n*incrementTime+incrementTime);
+				xBar.domain([t, t+(n*incrementTime)]).range([0, widthChart]);
+				dataBar = null;
+				dataBar = d3.range(n).map(next);
+				
+				//for difference chart
+				tArea = response.results[0].data[0][4]-(n*incrementTime+incrementTime);
+				for(var i=0;i<n;i++)
+				{
+				  	 tArea = tArea+incrementTime;
+					 GraphData.push({date:tArea, ETF:0, IOPV:0});
+				}
+				xArea.domain([d3.min(GraphData, function(d) { return d.date; }), d3.max(GraphData, function(d) { return d.date; })]);
+				
+				yArea.domain([
+			    	d3.min(GraphData, function(d) { return Math.min(d["ETF"], d["IOPV"]); }),
+			    	d3.max(GraphData, function(d) { return Math.max(d["ETF"], d["IOPV"]); })
+			    ]);
+	    		
+				// for line chart
+				$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["SELECT  top 1 premium_discount FROM premiumdiscount  WHERE etf_ticker  =  \''+ddlVal+'\'  "]&jsonp=?',
+						{},function(responsePremium){
+							if(responsePremium.results[0] != undefined && responsePremium.results[0].data[0] != undefined)
+								premiumVal = [responsePremium.results[0].data[0][0]];
+				});
+				
+				data =  {"start":now-(n*incrementTime),"end":now,"step":incrementTime,"names":["Stats_count2xx"],
+						"values":[[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]]};
+				dataA = {"start":now+incrementTime,"end":now+incrementTime,"step":incrementTime,"names":["Stats_count2xx"],
+						 "values":[[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]]};
+			  	
+				data["displayNames"] = ["PD Graph"];
+				data["colors"] = ["green","red"];
+				data["scale"] = "linear";
+				zerosArray = [];
+				for(var i=0; i<n;i++){
+					zerosArray.push(0);
+				}
+				data.values[0] = zerosArray;
+				data.values[1] = zerosArray;
+				data.values[2] = zerosArray;
+				data.values[3] = zerosArray;
+				
+				dataA.values[0] = zerosArray;
+				dataA.values[1] = zerosArray;
+				dataA.values[2] = zerosArray;
+				dataA.values[3] = zerosArray;
+				
+				$("#chart-line-id").remove();				
+				l1 = new LineGraph({containerId: 'chartLine', data: data});;
+				
+				now = response.results[0].data[0][4];
+				data.start = now-(n*incrementTime);
+				data.end = now;
+				dataA.start = now+incrementTime;	
+				dataA.end = now+incrementTime;	
+				updatedXValue = data.start;
+			 }
+			 else
+			 	ddlVal = '';
+		});
+		$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["select s.sector, b.const_ticker ,b.c_weight from basket as b, symbolsectormapping as s where b.etf_ticker = \''+document.getElementById("selectName").value+'\' and b.const_ticker=s.symbol group by s.sector, b.const_ticker,b.c_weight order by sector, const_ticker"]&jsonp=?',
+
+	  {},function(response)
+
+	   {
+
+	  	    var jaRes = response.results[0].data;
+
+			var joFlareChildren = {};
+
+			 for(var i=0; i<jaRes.length; i++)
+
+			 {
+
+			 	var strCategory = jaRes[i][0];
+
+			 	if( joFlareChildren[strCategory] )
+
+				{
+
+					joFlareChildren[strCategory].push({name: jaRes[i][1], size: jaRes[i][2] ,sizecolor:jaRes[i][2]*1000*1000 >16777215 ? (jaRes[i][2]*1000 > 16777215?jaRes[i][2]:jaRes[i][2]*1000): jaRes[i][2]*1000*1000});
+
+				}
+
+				else
+
+				{
+
+					joFlareChildren[strCategory] = [];
+
+					joFlareChildren[strCategory].push({name: jaRes[i][1], size: jaRes[i][2],sizecolor:jaRes[i][2]*1000*1000 >16777215 ? (jaRes[i][2]*1000 > 16777215?jaRes[i][2]:jaRes[i][2]*1000): jaRes[i][2]*1000*1000});
+
+				}
+
+			 }
+
+			 var jaChildren = [];
+
+			 for( var key in joFlareChildren ){
+
+				jaChildren.push({name:key,children:joFlareChildren[key]});
+
+			}
+
+			var joRoot = {}; 
+
+			joRoot.name = document.getElementById("selectName").value;
+
+			joRoot.children = jaChildren;
+
+			ConstTickerData = joRoot;			
+
+			redrawHeatMap();
+
+	   });	
+	}
+	
+	// declaration for line chart
+	
+	var now = (new Date()).getTime();
+	var data = null;
+	var dataA = null;
+	data = {"start":now-(n*incrementTime),"end":now,"step":incrementTime,"names":["Stats_count2xx"],
+			"values":[[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]]};
+    dataA = {"start":now+incrementTime,"end":now+incrementTime,"step":incrementTime,"names":["Stats_count2xx"],
+			 "values":[[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]]};
+  	
+	data["displayNames"] = ["PD Graph"];
+	data["colors"] = ["green","red"];
+	data["scale"] = "linear";
+	zerosArray = [];
+	for(var i=0; i<n;i++){
+		zerosArray.push(0);
+	}
+	data.values[0] = zerosArray;
+	data.values[1] = zerosArray;
+	data.values[2] = zerosArray;
+	data.values[3] = zerosArray;
+	
+	dataA.values[0] = zerosArray;
+	dataA.values[1] = zerosArray;
+	dataA.values[2] = zerosArray;
+	dataA.values[3] = zerosArray;
+	if(l1 == null)
+		l1 = new LineGraph({containerId: 'chartLine', data: data});;
+	// declaration for bar chart
+		
+	var t = -1;
+    var dataBar = null;
+    var svgBar = null;
+    var marginChart = {top: 20, right: 20, bottom: 30, left: 57},
+            widthChart = ($(window).width()-58-marginChart.left - marginChart.right)/2,
+            heightChart = 120;
+	
+    var xBar = null;
+    var yBar = null;
+    var barWidth = (widthChart / n) - 3;
+    var gBar = null;
+    var barGraph = null;
+    var xAxisBar = null;
+    var axisBar = null;
+	var yAxisBar = null;
+	
+	// declaration for Difference Chart
+	
+	var GraphData = [];
+	var tArea = -1;	
+	var xArea = null;
+	var yArea = null;
+	var xAxisArea = null;
+	var yAxisArea = null;
+	var lineArea = null;
+	var area = null;
+	var svgArea = null;
+	
+	// bar chart
+	
+    function next () {
+    	t = t+incrementTime;
+        return {
+            time: t,
+            value: 0
+        };
+    }
+	t = new Date().getTime()-(n*incrementTime+incrementTime);
+  	xBar = d3.scale.linear().domain([t, t+(n*incrementTime)]).range([0, widthChart]);
+    yBar = d3.scale.linear().domain([0, 0]).range([heightChart, 0]);
+  	dataBar = d3.range(n).map(next);
+  	svgBar = d3.select("#chartBar").append("svg")
+            .attr("width", widthChart + marginChart.left + marginChart.right)
+            .attr("height", heightChart + marginChart.top + marginChart.bottom)
+            .style("left", marginChart.left + "px")
+            .style("bottom", marginChart.bottom + "px")
+            .style("right", marginChart.right + "px")
+    		.style("top", marginChart.top + "px");
+
+    gBar = svgBar.append("g")
+            .attr("transform", "translate(" + marginChart.left + "," + marginChart.top + ")");
+
+    barGraph = gBar.append("svg")
+            .attr("width", widthChart - 0.5)
+            .attr("height", heightChart + marginChart.top + marginChart.bottom);
+
+    xAxisBar = d3.svg.axis().scale(xBar).tickFormat(function(d) {
+          return timeFromSecs(d);
+        }).orient("bottom").ticks(5);
+    axisBar = barGraph.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + heightChart + ")")
+            .call(xAxisBar);
+
+    yAxisBar = d3.svg.axis().scale(yBar).orient("left").ticks(5);
+    gBar.append("g")
+    		.attr("id", "yAxisBar-id")
+            .attr("class", "y axis")
+            .call(yAxisBar);
+
+    barGraph.selectAll("rect")
+            .data(dataBar)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", function(d) { return xBar(d.time); })
+            .attr("width", barWidth)
+            .attr("y", function(d) { return yBar(d.value); })
+            .attr("height", function(d) { return (heightChart - yBar(d.value)); });
+	gBar.append("svg:text")
+			.attr("class", "legend name")
+			.text(function(d, i) {
+				return "Bar Graph";
+			})
+			.attr("font-size", 12)
+			.attr("fill", function(d, i) {
+				return data.colors[i];
+			})
+			.attr("x", function(d, i) {
+				return widthChart-50;
+			})
+			.attr("y", function(d, i) {
+				return heightChart+28;
+			});
+	
+	// for Difference chart
+    
+    tArea = new Date().getTime()-(n*incrementTime+incrementTime);
+	xArea = d3.scale.linear()
+	.range([0, widthChart]);
+	
+	yArea = d3.scale.linear()
+	.range([heightChart, 0]);
+	
+	xAxisArea = d3.svg.axis()
+	.scale(xArea)
+	.tickFormat(function(d) {
+		return timeFromSecs(d);
+	 })
+	.orient("bottom").ticks(5);
+	
+	yAxisArea = d3.svg.axis()
+	.scale(yArea)
+	.orient("left").ticks(5);
+	
+	lineArea = d3.svg.area()
+	.interpolate("basis")
+	.x(function(d) { return xArea(d.date); })
+	.y(function(d) { return yArea(d["IOPV"]); });
+	
+	area = d3.svg.area()
+	.interpolate("basis")
+	.x(function(d) { return xArea(d.date); })
+	.y1(function(d) { return yArea(d["IOPV"]); });
+	
+	svgArea = d3.select("#chartArea").append("svg")
+	.attr("width", widthChart + marginChart.left + marginChart.right)
+	.attr("height", heightChart + marginChart.top + marginChart.bottom)
+	.style("left", marginChart.left + "px")
+    .style("bottom", marginChart.bottom + "px")
+    .style("right", marginChart.right + "px")
+	.style("top", marginChart.top + "px")
+	.append("g")
+	.attr("transform", "translate(" + marginChart.left + "," + marginChart.top + ")");
+	
+	GraphData = [];
+	for(var i=0;i<n;i++)
+	{
+	  tArea = tArea+incrementTime;
+	  GraphData.push({date:tArea, ETF:0, IOPV:0});
+	}
+	xArea.domain(d3.extent(GraphData, function(d) {return d.date; }));
+	
+	yArea.domain([0,0]);
+	
+	svgArea.datum(GraphData);
+	
+	svgArea.append("clipPath")
+	  .attr("id", "clip-below")
+	.append("path")
+	  .attr("d", area.y0(heightChart));
+	
+	svgArea.append("clipPath")
+	  .attr("id", "clip-above")
+	.append("path")
+	  .attr("d", area.y0(0));
+	
+	svgArea.append("path")
+	  .attr("id", "area-above-id")
+	  .attr("class", "area above")
+	  .attr("clip-path", "url(#clip-above)")
+	  .attr("d", area.y0(function(d) { return yArea(d["ETF"]); }));
+	
+	svgArea.append("path")
+	  .attr("id", "area-below-id")
+	  .attr("class", "area below")
+	  .attr("clip-path", "url(#clip-below)")
+	  .attr("d", area);
+	
+	svgArea.append("path")
+	  .attr("id", "lineArea-id")
+	  .attr("class", "lineArea")
+	  .attr("d", lineArea);
+	
+	svgArea.append("g")
+	  .attr("id", "xAxisArea-id")
+	  .attr("class", "x axis")
+	  .attr("transform", "translate(0," + heightChart + ")")
+	  .call(xAxisArea)
+	  .append("text");
+	
+	svgArea.append("g")
+	  .attr("id", "yAxisArea-id")
+	  .attr("class", "y axis")
+	  .call(yAxisArea)
+	  .append("text")
+	  .attr("transform", "rotate(-90)")
+	  .attr("y", 6)
+	  .attr("dy", ".71em")
+	  .style("text-anchor", "end")
+	  .text("");
+	svgArea.append("svg:text")
+			.attr("class", "legend name")
+			.text(function(d, i) {
+				return "Difference Graph";
+			})
+			.attr("font-size", 12)
+			.attr("fill", function(d, i) {
+				return data.colors[i];
+			})
+			.attr("x", function(d, i) {
+				return widthChart-90;
+			})
+			.attr("y", function(d, i) {
+				return heightChart+28;
+			});  
+			
+	// FOR HEATMAP
+	
+	var childUpdateTransition = null;
+	var ConstTickerData = null;		
+	var treemap = null;
+	var chart = null;
+	
+	var chartWidth = ($("#tab-1").width()-60)/2;
+	var chartHeight = $("#tab-1").height()-80;
+	
+	var xscale = d3.scale.linear().range([0, chartWidth]);
+	var yscale = d3.scale.linear().range([0, chartHeight]);
+	
+	var color = d3.scale.category20c();
+	var headerHeight = 30;
+	
+	var headerColor = "#555555";
+	
+	var transitionDuration = 1;
+	
+	var root={};
+	
+	var node={};
+	
+	var jsonData = {};  
+	
+	
+	
+	
+	
+	
+	
+	chart = d3.select("#chartHeatMap").append("div");
+	
+			
+	
+	setInterval(function() {
+    	if(ddlVal != '')
+	    {
+	    	//bar chart
+	    	var resData = {};
+	        t = t+incrementTime;
+	        tArea = tArea+incrementTime;
+			var joData = {date:tArea};
+	        now = now+incrementTime;
+			$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["  select top 1 symbol,time, trade_price, trade_volume from trades where symbol =\''+ddlVal+'\' and created_on>'+(t-incrementTime)+' and created_on<='+t+'  order by created_on DESC "]&jsonp=?',
+			{},function(responseBar)
+			{
+				var etf = 0;
+				if(responseBar.results[0] != undefined && responseBar.results[0].data[0] != undefined)
+				{ 	
+					 resData.time = t;
+					 resData.value = responseBar.results[0].data[0][2] * responseBar.results[0].data[0][3];
+					 etf = responseBar.results[0].data[0][2];
+				}
+				else
+				{
+					resData.time = t;
+					resData.value = 0;
+				}		        
+				var iopv = 0;				
+				joData.ETF = etf ;
+				$.getJSON('http://localhost:8080/api/1.0/?Procedure=GetIOPV&&Parameters=[\''+ddlVal+'\','+(tArea-incrementTime)+','+tArea+']&jsonp=?',
+				  {},function(responseArea)
+				{	
+					if(responseArea.results[0].data[0] != undefined)
+						iopv = responseArea.results[0].data[0][0];
+						
+					//difference chart
+					joData.IOPV = iopv ;
+					dataBar.shift();
+		        	dataBar.push(resData);
+			        redraw();
+					if(GraphData.length != 0 )
+					{
+						GraphData.shift();
+						GraphData.push(joData);
+						svgArea.datum(GraphData);
+						redrawArea();
+					}
+					
+					//line chart
+					
+					if(data != null)
+					{
+						var newData = [];
+						data.values.forEach(function(dataSeries, index) {
+							if( index == 0 ){			
+								var ydata = (etf-iopv) / (iopv==0?1:iopv) * 100;
+								dataSeries.shift();
+								dataSeries.push(ydata);
+								newData[index] = [ydata];
+							}else{
+								newData[index] = [premiumVal];
+							}
+						}) ;
+						dataA.values = newData;
+						dataA.start = dataA.start + dataA.step;
+						dataA.end = dataA.end + dataA.step;
+						if(updatedXValue != null)
+						{	
+							if(l1 != null)
+								l1.slideData(dataA,updatedXValue);
+							updatedXValue = null;
+						}
+						else
+						{
+							if(l1 != null)
+								l1.slideData(dataA,updatedXValue);
+						}
+					}
+				});			
+			});
+			
+			// for heat map
+			
+			if(ConstTickerData != null)
+			{
+				for(var i=0;i<ConstTickerData.children.length;i++)
+				{
+					for(var j=0;j<ConstTickerData.children[i].children.length;j++)
+					{
+						$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=[" select top 1 symbol, ask_price , bid_price , '+i+' as indexi , '+j+'  as indexj from quotes where symbol = \''+ConstTickerData.children[i].children[j].name+'\' order by time desc"]&jsonp=?',
+	
+							  {},function(response)
+	
+							  {
+	
+							  if(response.results[0].data.length != 0)
+	
+							  {
+	
+							  	if(response.results[0].data[0][1] > 0 && response.results[0].data[0][2] > 0 && response.results[0].data[0][1] > response.results[0].data[0][2])
+	
+							  		//ConstTickerData.children[response.results[0].data[0][3]].children[response.results[0].data[0][4]].size = (response.results[0].data[0][1]-response.results[0].data[0][2])/((response.results[0].data[0][1]+response.results[0].data[0][2]));
+							  		var colrdata = (response.results[0].data[0][1]-response.results[0].data[0][2])/((response.results[0].data[0][1]+response.results[0].data[0][2]));
+							  		ConstTickerData.children[response.results[0].data[0][3]].children[response.results[0].data[0][4]].sizecolor = colrdata*1000*1000 >16777215 ? (colrdata*1000 > 16777215?colrdata:colrdata*1000): colrdata*1000*1000;
+							  		//alert(decimal2hex((response.results[0].data[0][1]-response.results[0].data[0][2])/((response.results[0].data[0][1]+response.results[0].data[0][2]))*1000));
+							  }
+	
+						});				
+	
+					}
+	
+				}
+	
+			}
+			if(treemap != null)
+				treemap.nodes(ConstTickerData);
+			if(childUpdateTransition != null)
+			{
+				childUpdateTransition.select("rect")
+		                .style("fill", function(d) {
+			                return decimal2hex(d.sizecolor);
+		                });
+	        }
+        
+		 }
+	}, 1000);
+	
+	function redraw()
+    {
+        var rect = barGraph.selectAll("rect")
+                .data(dataBar, function(d) { return d.time; });
+		
+        // time update
+        //x.domain([(t - (n*incrementTime)), t]);
+        xBar.domain([d3.min(dataBar, function(d) { return d.time; }), d3.max(dataBar, function(d) { return d.time; })]);
+        // time update
+		//y.domain([0, d3.max(data, function(d) { return d.value; })]);
+		
+		yBar.domain([
+		    0,
+		    d3.max(dataBar, function(d) { return d.value; })
+		]);
+		
+		$("#yAxisBar-id").remove();
+        gBar.append("g")
+    		.attr("id", "yAxisBar-id")
+            .attr("class", "y axis")
+            .call(yAxisBar);
+           
+        // transition parent
+        var transition = barGraph.transition().duration(1000);
+
+        // initialise entering bars	and then do the transition
+        rect.enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", function(d, i) { return xBar(d.time) ; })
+                .attr("y", function(d) { return yBar(d.value) ; })
+                .attr("width", barWidth)
+                .attr("height", function(d) { return (heightChart - yBar(d.value)); });
+
+        // transition entering and updating bars
+        transition.selectAll("rect").attr("x", function(d) { return xBar(d.time); });
+        transition.selectAll("g.axis").call(xAxisBar);	
+        
+        // remove shifted bar that is not displayed anymore
+        transition.selectAll("barGraph.rect").attr("x", function(d) {return xBar(d.time - 1 ); })
+                .remove();
+
+    }
+    function redrawArea()
+    {
+    	$("#clip-below").remove();
+    	$("#clip-above").remove();
+    	$("#area-above-id").remove();
+    	$("#area-below-id").remove();
+    	$("#lineArea-id").remove();
+    	$("#xAxisArea-id").remove();
+    	$("#yAxisArea-id").remove();
+      			
+	    
+        xArea.domain(d3.extent(GraphData, function(d) { return d.date; }));
+		
+		yArea.domain([
+		    d3.min(GraphData, function(d) { return Math.min(d["ETF"], d["IOPV"]); }),
+		    d3.max(GraphData, function(d) { return Math.max(d["ETF"], d["IOPV"]); })
+		]);
+      	
+		svgArea.append("clipPath")
+			.attr("id", "clip-below")
+			.append("path")
+			.attr("d", area.y0(heightChart));
+		
+		svgArea.append("clipPath")
+			.attr("id", "clip-above")
+			.append("path")
+			.attr("d", area.y0(0));
+		  
+		svgArea.append("path")
+			.attr("id", "area-above-id")
+			.attr("class", "area above")
+			.attr("clip-path", "url(#clip-above)")
+			.attr("d", area.y0(function(d) { return yArea(d["ETF"]); }));
+
+	  svgArea.append("path")
+	  	  .attr("id", "area-below-id")
+	      .attr("class", "area below")
+	      .attr("clip-path", "url(#clip-below)")
+	      .attr("d", area);
+	
+	  svgArea.append("path")
+	      .attr("id", "lineArea-id")
+	      .attr("class", "lineArea")
+	      .attr("d", lineArea);
+      svgArea.append("g")
+	  	  .attr("id", "xAxisArea-id")
+	      .attr("class", "x axis")
+	      .attr("transform", "translate(0," + heightChart + ")")
+	      .call(xAxisArea);
+	
+	  svgArea.append("g")
+	  	  .attr("id", "yAxisArea-id")
+	      .attr("class", "y axis")
+	      .call(yAxisArea)
+	      .append("text")
+	      .attr("transform", "rotate(-90)")
+	      .attr("y", 6)
+	      .attr("dy", ".71em")
+	      .style("text-anchor", "end")
+	      .text("");
+    }
+	
+	function timeFromSecs(seconds)
+	{
+		var NewDate = new Date(seconds);
+		return (NewDate.getHours()<10?'0'+NewDate.getHours():NewDate.getHours())+':'+(NewDate.getMinutes()<10?'0'+NewDate.getMinutes():NewDate.getMinutes())+':'+(NewDate.getSeconds() == 0 ? '00':NewDate.getSeconds());
+	}	
+	
+function redrawHeatMap()
+
+{
+	$("#heatmap-svg").remove();
+
+	treemap = d3.layout.treemap()
+
+        .round(false)
+
+        .size([chartWidth, chartHeight])
+
+        .sticky(true)
+
+        .padding([headerHeight + 1, 1, 1, 1])
+
+        .value(function(d) {
+
+            return d.size;
+
+        });
+
+	
+
+	chart = d3.select("#chartHeatMap").select("div")
+		.attr("align", "center")
+		.attr("style", "padding-top:20px;padding-left:0px")
+		.append("svg:svg")
+		.attr("id", "heatmap-svg")
+
+        .attr("width", chartWidth)
+
+        .attr("height", chartHeight)
+
+        .append("svg:g");
+
+	
+
+		node = root = jsonData =ConstTickerData;  
+
+        var nodes = treemap.nodes(jsonData);
+
+
+
+        var children = nodes.filter(function(d) {
+
+            return !d.children;
+
+        });
+
+        var parents = nodes.filter(function(d) {
+
+            return d.children;
+
+        });
+
+
+
+        // create parent cells
+
+        var parentCells = chart.selectAll("g.cell.parent")
+
+                .data(parents, function(d) {
+
+                    return "p-" + d.name;
+
+                });
+
+        var parentEnterTransition = parentCells.enter()
+
+                .append("g")
+
+                .attr("class", "cell parent")
+
+                .on("click", function(d) {
+
+                    zoom(d);
+
+                });
+
+        parentEnterTransition.append("rect")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, d.dx - 1);
+
+                })
+
+                .attr("height", headerHeight)
+
+                .style("fill", headerColor);
+
+        parentEnterTransition.append('foreignObject')
+
+                .attr("class", "foreignObject")
+
+                .append("xhtml:body")
+
+                .attr("class", "labelbody")
+
+                .append("div")
+
+                .attr("class", "label");
+
+        // update transition
+
+        var parentUpdateTransition = parentCells.transition().duration(transitionDuration);
+
+        parentUpdateTransition.select(".cell")
+
+                .attr("transform", function(d) {
+
+                    return "translate(" + d.dx + "," + d.y + ")";
+
+                });
+
+        parentUpdateTransition.select("rect")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, d.dx - 1);
+
+                })
+
+                .attr("height", headerHeight)
+
+                .style("fill", headerColor);
+
+        parentUpdateTransition.select(".foreignObject")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, d.dx - 1);
+
+                })
+
+                .attr("height", headerHeight)
+
+                .select(".labelbody .label")
+
+                .attr("style", function(d) {
+
+                    return "width:" + Math.max(0, (d.dx - 1)) + "px;" +
+
+                           "height:" + headerHeight + "px;";
+
+                })
+
+                .text(function(d) {
+
+                    return d.name;
+
+                });
+
+        // remove transition
+
+        parentCells.exit()
+
+                .remove();
+
+
+
+        // create children cells
+
+        var childrenCells = chart.selectAll("g.cell.child")
+
+                .data(children, function(d) {
+
+                    return "c-" + d.name;
+
+                });
+
+        // enter transition
+
+        var childEnterTransition = childrenCells.enter()
+
+                .append("g")
+
+                .attr("class", "cell child")
+
+                .on("click", function(d) {
+
+                    zoom(node === d.parent ? root : d.parent);
+
+                });
+
+        childEnterTransition.append("rect")
+
+                .classed("background", true)
+
+                .style("fill", function(d) {
+                	return decimal2hex(d.sizecolor);
+					/*if(d.sizecolor > 5)
+                		return "#FF0000";
+                	else
+                		return "#04B404";*/
+                    //return color(d.parent.name);
+
+                });
+
+        childEnterTransition.append('foreignObject')
+
+                .attr("class", "foreignObject")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, d.dx - 1);
+
+                })
+
+                .attr("height", function(d) {
+
+                    return Math.max(0, d.dy - 1);
+
+                })
+
+                //.style("display", "none")
+
+                .style("display", "")
+
+                .append("xhtml:body")
+
+                .attr("class", "labelbody")
+
+                .append("div")
+
+                .attr("class", "label")
+
+                .text(function(d) {
+
+                    return d.name;
+
+                });
+
+        // update transition
+
+        childUpdateTransition = childrenCells.transition().duration(transitionDuration);
+
+        childUpdateTransition.select(".cell")
+
+                .attr("transform", function(d) {
+
+                    return "translate(" + d.x  + "," + d.y + ")";
+
+                });
+
+        childUpdateTransition.select("rect")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, d.dx - 1);
+
+                })
+
+                .attr("height", function(d) {
+
+                    return (d.dy - 1);
+
+                })
+
+                .style("fill", function(d) {
+                	return decimal2hex(d.sizecolor);
+					/*if(d.sizecolor > 5)
+                		return "#FF0000";
+                	else
+                		return "#04B404";*/
+                    //return color(d.parent.name);
+
+                });
+
+        childUpdateTransition.select(".foreignObject")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, d.dx - 1);
+
+                })
+
+                .attr("height", function(d) {
+
+                    return Math.max(0, d.dy - 1);
+
+                })
+
+                .select(".labelbody .label")
+
+                .attr("style", function(d) {
+
+                    return "width:"  + Math.max(0, (d.dx - 1)) + "px;" +
+
+                           "height:" + (d.dy - 1) + "px;";
+
+                })
+
+                .text(function(d) {
+
+                    return d.name;
+
+                });
+
+        // exit transition
+
+        childrenCells.exit()
+
+                .remove();
+
+
+
+        d3.select("select").on("change", function() {
+
+            console.log("select zoom(node)");
+
+            treemap.value(this.value == "size" ? size : count)
+
+                    .nodes(root);
+
+            zoom(node);
+
+        });
+
+		function size(d) {
+
+        return d.size;
+
+    }
+
+
+
+
+
+    function count(d) {
+
+        return 1;
+
+    }
+
+
+
+
+
+    //and another one
+
+    function textHeight(d) {
+
+        var ky = chartHeight / d.dy;
+
+        yscale.domain([d.y, d.y + d.dy]);
+
+        return (ky * d.dy) / headerHeight;
+
+    }
+
+
+
+    function getRGBComponents (color) {
+
+        var r = color.substring(1, 3);
+
+        var g = color.substring(3, 5);
+
+        var b = color.substring(5, 7);
+
+        return {
+
+            R: parseInt(r, 16),
+
+            G: parseInt(g, 16),
+
+            B: parseInt(b, 16)
+
+        };
+
+    }
+
+
+
+
+
+    function idealTextColor (bgColor) {
+
+        var nThreshold = 105;
+
+        var components = getRGBComponents(bgColor);
+
+        var bgDelta = (components.R * 0.299) + (components.G * 0.587) + (components.B * 0.114);
+
+        return ((255 - bgDelta) < nThreshold) ? "#000000" : "#ffffff";
+
+    }
+
+    
+
+      function layout(d) {
+
+    if (d.children) {
+
+      treemap.nodes({children: d.children});
+
+      d.children.forEach(function(c) {
+
+        c.x = d.x + c.x * d.dx;
+
+        c.y = d.y + c.y * d.dy;
+
+        c.dx *= d.dx;
+
+        c.dy *= d.dy;
+
+        c.parent = d;
+
+        layout(c);
+
+      });
+
+    }
+
+  }
+
+
+
+
+
+
+
+    function zoom(d) {
+
+    	this.treemap
+
+                .padding([headerHeight/(chartHeight/d.dy), 0, 0, 0])
+
+                .nodes(d);
+
+
+
+        // moving the next two lines above treemap layout messes up padding of zoom result
+
+        var kx = chartWidth  / d.dx;
+
+        var ky = chartHeight / d.dy;
+
+        var level = d;
+
+        
+
+		xscale.domain([d.x, d.x + d.dx]);
+
+        yscale.domain([d.y, d.y + d.dy]);
+
+
+
+        if (node != level) {
+
+            chart.selectAll(".cell.child .foreignObject").style("display", "");
+
+
+
+        }
+
+
+
+        var zoomTransition = chart.selectAll("g.cell").transition().duration(transitionDuration)
+
+                .attr("transform", function(d) {
+
+                    return "translate(" + xscale(d.x) + "," + yscale(d.y) + ")";
+
+                })
+
+                .each("start", function() {
+
+                    d3.select(this).select("label")
+
+                            .style("display", "");
+
+                })
+
+                .each("end", function(d, i) {
+
+                    if (!i && (level !== self.root)) {
+
+                        chart.selectAll(".cell.child")
+
+                            .filter(function(d) {
+
+                                return d.parent === self.node; // only get the children for selected group
+
+                            })
+
+                            .select(".foreignObject")
+
+                            .style("display", "")
+
+                            .style("color", function(d) {
+
+                                return idealTextColor(color(d.parent.name));
+
+                            });
+
+                    }
+
+                });
+
+
+
+        zoomTransition.select(".foreignObject")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, kx * d.dx - 1);
+
+                })
+
+                .attr("height", function(d) {
+
+                    return d.children ? headerHeight: Math.max(0, ky * d.dy - 1);
+
+                })
+
+                .select(".labelbody .label")
+
+                .attr("style", function(d) {
+
+                    return "width:"  + Math.max(0, (kx * d.dx - 1)) + "px;" +
+
+                           "height:" + (d.children ? headerHeight + "px": ky * d.dy - 1 + "px;");
+
+                })
+
+                .text(function(d) {
+
+                    return d.name;
+
+                });
+
+
+
+        // update the width/height of the rects
+
+        zoomTransition.select("rect")
+
+                .attr("width", function(d) {
+
+                    return Math.max(0, kx * d.dx - 1);
+
+                })
+
+                .attr("height", function(d) {
+
+                    return d.children ? headerHeight : Math.max(0, ky * d.dy - 1);
+
+                })
+
+                .style("fill", function(d) {
+                	return d.children ? headerColor : decimal2hex(d.sizecolor);
+					
+                    //return d.children ? headerColor : color(d.parent.name);
+
+                });
+
+
+
+        node = d;
+
+
+
+        if (d3.event) {
+
+            d3.event.stopPropagation();
+
+        }
+
+    }
+
+	        zoom(node);
+
+}
+function decimal2hex(d) {
+    var digits = "0123456789ABCDEF";
+    if (d == 0) return "0";
+    var hex = "";
+    while (d > 0) {
+       var digit = d % 16;                
+       hex = digits.charAt(digit) + hex;  
+       d = d / 16;
+    }
+    return "#"+hex.substring(hex.length-6);
+}
+	</script>
+
+
+
+	</body>
+</html>

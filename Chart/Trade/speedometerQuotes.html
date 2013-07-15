@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 5.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  	<head>
+    	<meta http-equiv="content-type" content="text/html;charset=utf-8">
+    	<title>TPS</title>		
+		<style>		
+			body
+			{
+			  	font: 10px arial;
+			}			
+		</style>		
+		<script src="../jquery1.7.2.js"></script>
+		<script type="text/javascript" src="../d3.js"></script>
+		<script type="text/javascript" src="speedometer.js"></script>
+		<script>	
+			var gauges = [];
+			
+			function createGauge(name, label)
+			{
+				var config = 
+				{
+					size: 220,
+					label: label,
+					minorTicks: 5,
+					max:20000
+				}
+				
+				config.greenZones = [];
+				config.greenZones.push({ from: config.max-(config.max/5), to: config.max });
+				
+				config.yellowZones = [];
+				config.yellowZones.push({ from: (config.max/2)-(config.max/5), to: (config.max/2)+(config.max/5)});
+				
+				config.redZones = [];
+				config.redZones.push({ from: 0, to: (config.max/5) });
+				
+				gauges[name] = new Gauge(name + "GaugeContainer", config);
+				gauges[name].render();
+			}
+		
+			function createGauges()
+			{
+				createGauge("quotes", "Quotes");							
+			}
+			function MyCallBack(response)
+			{
+				var lastResponseCount = 0;
+				for(var i=0;i<response.results[0].data.length;i++)
+				{
+					if(response.results[0].data[i][5] == 'com.procedures.QuotesInsert')
+					{
+						lastResponseCount += (response.results[0].data[i][6])/2;
+					}
+				}	
+				for (var key in gauges)
+				{
+					gauges[key].redraw(lastResponseCount);
+				}
+			}
+			function updateGauges()
+			{
+				$.getJSON('http://localhost:8080/api/1.0/?Procedure=@Statistics&Parameters=["PROCEDURE",1]&jsonp=?',
+				{},MyCallBack);	
+			}
+			
+			function initialize()
+			{
+				createGauges();
+				setInterval(updateGauges, 1000);
+			}
+						
+		</script>
+		
+		
+	</head>
+	
+	<body onload="initialize()">
+		<div id="quotesGaugeContainer" align="center"></div>
+	</body>
+	
+</html>

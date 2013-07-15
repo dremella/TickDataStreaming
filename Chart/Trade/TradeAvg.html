@@ -1,0 +1,140 @@
+<html>
+	<head>
+		<title>Latency</title>
+		<script src="../d3.js"></script>
+		<!-- 
+			using JQuery for element dimensions
+			This is a small aspect of this example so it can be removed fairly easily if needed.
+		-->
+		<script src="../jquery1.7.2.js"></script>
+		<script src="sample_data.js"></script>
+<script>
+	var zerosArray = [];
+	for(var i=0; i<300;i++){
+		zerosArray.push(0);
+	}
+	data.values[0] = zerosArray;
+	data.values[1] = zerosArray;
+	data.values[2] = zerosArray;
+	data.values[3] = zerosArray;
+	
+	dataA.values[0] = zerosArray;
+	dataA.values[1] = zerosArray;
+	dataA.values[2] = zerosArray;
+	dataA.values[3] = zerosArray;
+	//dataA.start = (new Date()).getTime();
+	//dataA.end = dataA.start + 600000;
+	//alert(dataA.start);
+	//alert(dataA.end); // 60*60*1000;  86400000
+</script>
+		<script src="line-graph.js"></script>
+		<link rel="stylesheet" href="../style.css" type="text/css">
+		<style>
+			body {
+				font-family: "Helvetica Neue", Helvetica;
+			}
+					
+			p {
+				clear:both;
+				top: 20px;
+			}		
+					
+			div.aGraph {
+				margin-bottom: 30px;
+			}
+		</style>
+	</head>
+	<body>
+	<!-- <DIV align="center" style="position:relative;width:100%;height:1%"><FONT color="blue" style="font-weight: bold;">Latency </FONT></DIV> -->
+	<div id="graph1" class="aGraph" style="position:relative;width:100%;height:94%"></div>
+
+	<script>
+		/* 
+		 * If running inside bl.ocks.org we want to resize the iframe to fit both graphs
+		 */
+		 
+		 /*
+		 * Note how the 'data' object is added to here before rendering to provide decoration information.
+		 * <p>
+		 * This is purposefully done here instead of in data.js as an example of how data would come from a server
+		 * and then have presentation information injected into it (rather than as separate arguments in another object)
+		 * and passed into LineGraph.
+		 *
+		 * Also, CSS can be used to style colors etc, but this is also doable via the 'data' object so that the styling
+		 * of different data points can be done in code which is often more natural for display names, legends, line colors etc
+		 */
+		 // add presentation logic for 'data' object using optional data arguments
+		 data["displayNames"] = ["Trade Latency(ms)"];
+		 data["colors"] = ["green"];
+		 data["scale"] = "linear";
+		 
+		 // add presentation logic for 'data' object using optional data arguments
+
+		 // create graph now that we've added presentation config
+		 var l1 = new LineGraph({containerId: 'graph1', data: data});;
+		
+	/*setInterval(function() {
+		/*
+		* The following will simulate live updating of the data (see dataA, dataB, dataC etc in data.js which are real examples)
+		* This is being simulated so this example functions standalone without a backend server which generates data such as data.js contains.
+		*
+		// for each data series ...
+		var newData = [];
+		data.values.forEach(function(dataSeries, index) {
+			// take the first value and move it to the end
+			// and capture the value we're moving so we can send it to the graph as an update
+			var v = dataSeries.shift();
+			dataSeries.push(v);
+			// put this value in newData as an array with 1 value
+			newData[index] = [v];
+		})
+		
+		// we will reuse dataA each time
+		dataA.values = newData;
+		// increment time 1 step
+		dataA.start = dataA.start + dataA.step;
+		dataA.end = dataA.end + dataA.step; 
+					
+		l1.slideData(dataA);
+	}, 100);*/
+	
+	function MyCallBack(response)
+	{
+			var lastResponseAvg = 0;		
+			if(response.results[0].data[0][5] == 'com.procedures.TradeInsert')
+			{
+				lastResponseAvg = (response.results[0].data[0][10])/1000;
+				if(response.results[0].data[1] != undefined)
+				{
+					lastResponseAvg += ((response.results[0].data[0][10])/1000);				
+				}
+			}
+			var newData = [];
+			data.values.forEach(function(dataSeries, index) {
+				if( index == 0 ){
+					dataSeries.shift();
+					dataSeries.push(lastResponseAvg);
+					newData[index] = [lastResponseAvg];
+				}else{
+					newData[index] = [0];
+				}
+			})
+			dataA.values = newData;
+			// increment time 1 step
+			dataA.start = dataA.start + dataA.step;
+			dataA.end = dataA.end + dataA.step; 
+						
+			l1.slideData(dataA);
+	}
+	setInterval(function() {
+      $.getJSON('http://localhost:8080/api/1.0/?Procedure=@Statistics&Parameters=["PROCEDURE",1]&jsonp=?',
+          {},MyCallBack);	
+          
+	}, 2000);
+		
+	</script>
+
+
+
+	</body>
+</html>

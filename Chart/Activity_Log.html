@@ -1,0 +1,91 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="keywords" content="jquery,ui,easy,easyui,web">
+	<meta name="description" content="easyui help you build your web page easily!">
+	<title>Activity Log</title>
+	<link rel="stylesheet" type="text/css" href="http://www.jeasyui.com/easyui/themes/default/easyui.css">
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.4.4.min.js"></script>
+	<script type="text/javascript" src="http://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+	<script>
+		var schemadata = null;
+		var JsonData = [];
+		$(document).ready(function () {
+			$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=[%22select%20etf_name,trade_value,count%28etf_name%29%20as%20request%20,buy_sell,%20count%28buy_sell%29%20as%20bs_count%20from%20%20activity_log%20group%20by%20trade_value,%20etf_name%20,%20buy_sell%20order%20by%20trade_value%20desc%22]&jsonp=?',
+			{},function(response){
+			schemadata = response.results[0].schema;
+			var data = response.results[0].data;
+			for(var i = 0; i < data.length; i++){
+			
+				var temp1 = String(data[i]).split(",");
+				var ETF_NAME =String(schemadata[0]['name']);
+				var TRADE_VALUE =String(schemadata[1]['name']);
+				var REQUEST =String(schemadata[2]['name']);
+				var BUY_SELL =String(schemadata[3]['name']);
+				var COUNT =String(schemadata[4]['name']);
+				JsonData.push({ 
+								RANK : i+1,
+								ETF_NAME: temp1[0], 
+								TRADE_VALUE: temp1[1],
+								REQUEST	: temp1[2], 
+								BUY_SELL : temp1[3], 
+								COUNT : temp1[4]
+							});
+			}
+			$('#ActivityLogID').datagrid('loadData', JsonData);
+			JsonData = [];
+			});
+			// $('#ActivityLogID').datagrid('reload');
+			
+			var pager = $('#ActivityLogID').datagrid('getPager');    // get the pager of datagrid  
+			pager.pagination({  
+				showPageList:false, 
+				onBeforeRefresh:function(){  
+					$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=[%22select%20etf_name,trade_value,count%28etf_name%29%20as%20request%20,buy_sell,%20count%28buy_sell%29%20as%20buy_sell%20from%20%20activity_log%20group%20by%20trade_value,%20etf_name%20,%20buy_sell%20order%20by%20trade_value%20desc%22]&jsonp=?',
+					{},function(response){
+					schemadata = response.results[0].schema;
+					var data = response.results[0].data;
+					for(var i = 0; i < data.length; i++){
+						var temp1 = String(data[i]).split(",");
+						var ETF_NAME =String(schemadata[0]['name']);
+						var TRADE_VALUE =String(schemadata[1]['name']);
+						var REQUEST =String(schemadata[2]['name']);
+						var BUY_SELL =String(schemadata[3]['name']);
+						var COUNT =String(schemadata[4]['name']);
+						JsonData.push({ 
+										RANK : i+1,
+										ETF_NAME: temp1[0], 
+										TRADE_VALUE: temp1[1],
+										REQUEST	: temp1[2], 
+										BUY_SELL : temp1[3], 
+										COUNT : temp1[4]
+									});
+					}
+					//$('#ActivityLogID').datagrid('clear'); 
+					$('#ActivityLogID').datagrid('loadData', JsonData);
+					JsonData = [];
+					});  
+					return true;  
+				}  
+			});
+		});
+	</script>
+</head>
+<body>
+	<div align="center">
+	<table id="ActivityLogID" title="Activity Log" class="easyui-datagrid" style="width:1000px;height:600px"
+			pagination="true" singleSelect="true" >
+		<thead>
+			<tr>
+				<th field="RANK" width="150"><b>Rank</b></th>
+				<th field="ETF_NAME" width="150"><b>ETF</b></th>
+				<th field="TRADE_VALUE" width="150"><b>Total Notional ($)</b></th>
+				<th field="REQUEST" width="150"><b>Total Client Request</b></th>
+				<th field="BUY_SELL" width="150"><b>BUY/SELL</b></th>
+				<th field="COUNT" width="150"><b>COUNT</b></th>
+			</tr>
+		</thead>
+	</table>
+	</div>
+</body>
+</html>

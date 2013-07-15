@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Heat Map</title>
+    <script src="../../jquery1.7.2.js"></script>
+    <script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>
+    <style type="text/css">
+        body {
+            overflow: hidden;
+            margin: 0;
+            font-size: 12px;
+            font-family: "Helvetica Neue", Helvetica;
+        }
+
+        #chart, #header, #footer {
+            position: absolute;
+            top: 0;
+        }
+
+        #header, #footer {
+            z-index: 1;
+            display: block;
+            font-size: 36px;
+            font-weight: 300;
+            text-shadow: 0 1px 0 #fff;
+        }
+
+        #header.inverted, #footer.inverted {
+            color: #fff;
+            text-shadow: 0 1px 4px #000;
+        }
+
+        #header {
+            top: 80px;
+            left: 140px;
+            width: 1200px;
+        }
+
+        #footer {
+            top: 680px;
+            right: 140px;
+            text-align: right;
+        }
+
+        rect {
+            pointer-events: all;
+            cursor: pointer;
+        }
+
+        .chart {
+            display: block;
+            margin: auto;
+            margin-top: 40px;
+        }
+
+        .parent .label {
+            color: #FFFFFF;
+            padding-left: 2px;
+            padding-top: 2px;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+            -webkit-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+            -moz-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+        }
+
+        .labelbody {
+            background: transparent;
+        }
+
+        .label {
+            padding: 2px;
+            white-space: pre;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+            -webkit-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+            -moz-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+        }
+
+        .child .label {
+            white-space: pre-wrap;
+            text-align: center;
+            text-overflow: ellipsis;
+        }
+
+        .cell {
+            font-size: 11px;
+            cursor: pointer
+        }
+    </style>
+</head>
+<body>
+<div align="right" style="padding-top: 5px">
+	<FONT color="blue" style="font-weight: bold;font-size: 10pt;font-family: Verdana, sans-serif;">Client Name : </FONT><select id="selectName" name="selectName" onchange="NameChange()" style="width: 150px">
+	<option value="" selected="selected" ></option>
+	</select>
+</div>
+<div id="body"></div>
+
+</body>
+
+<script type="text/javascript">
+var childUpdateTransition = null;
+var ConstTickerData = null;
+function addOption(selectId, value, text, selected) {
+    var html = '<option value="'+value+'">'+text+'</option>';
+    $('#'+selectId).append(html);
+}
+$.getJSON('http://localhost:8080/api/1.0/?Procedure=GetETF&jsonp=?',
+  {},function(response)
+  {
+  	for(var i = 0; i<response.results[0].data.length;i++)
+	{
+		addOption('selectName', response.results[0].data[i], response.results[0].data[i], 'off');
+	}
+});
+var treemap = null;
+var chart = null;
+var chartWidth = 780 - 80;
+var chartHeight = 800 - 180;
+var xscale = d3.scale.linear().range([0, chartWidth]);var yscale = d3.scale.linear().range([0, chartHeight]);
+var color = d3.scale.category20c();var headerHeight = 20;
+var headerColor = "#555555";
+var transitionDuration = 1;
+var root={};
+var node={};
+var jsonData = {};  
+
+
+
+chart = d3.select("#body").append("div");
+                 
+function NameChange()
+{
+	//redraw();
+	$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=["select s.sector, b.const_ticker ,b.c_weight from basket as b, symbolsectormapping as s where b.etf_ticker = \''+document.getElementById("selectName").value+'\' and b.const_ticker=s.symbol group by s.sector, b.const_ticker,b.c_weight order by sector, const_ticker"]&jsonp=?',
+	  {},function(response)
+	   {
+	  	    var jaRes = response.results[0].data;
+			var joFlareChildren = {};
+			 for(var i=0; i<jaRes.length; i++)
+			 {
+			 	var strCategory = jaRes[i][0];
+			 	if( joFlareChildren[strCategory] )
+				{
+					joFlareChildren[strCategory].push({name: jaRes[i][1], size: jaRes[i][2] ,sizecolor:jaRes[i][2]*1000*1000 >16777215 ? (jaRes[i][2]*1000 > 16777215?jaRes[i][2]:jaRes[i][2]*1000): jaRes[i][2]*1000*1000});
+				}
+				else
+				{
+					joFlareChildren[strCategory] = [];
+					joFlareChildren[strCategory].push({name: jaRes[i][1], size: jaRes[i][2],sizecolor:jaRes[i][2]*1000*1000 >16777215 ? (jaRes[i][2]*1000 > 16777215?jaRes[i][2]:jaRes[i][2]*1000): jaRes[i][2]*1000*1000});
+				}
+			 }
+			 var jaChildren = [];
+			 for( var key in joFlareChildren ){
+				jaChildren.push({name:key,children:joFlareChildren[key]});
+			}
+			var joRoot = {}; 
+			joRoot.name = document.getElementById("selectName").value;
+			joRoot.children = jaChildren;
+			ConstTickerData = joRoot;			
+			redraw();
+	   });	
+}
+       
+function redraw()
+{
+	$("svg").remove();
+	treemap = d3.layout.treemap()
+        .round(false)
+        .size([chartWidth, chartHeight])
+        .sticky(true)
+        .padding([headerHeight + 1, 1, 1, 1])
+        .value(function(d) {
+            return d.size;
+        });
+	
+	chart = d3.select("#body").select("div")
+		.attr("align", "center")
+		.append("svg:svg")
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .append("svg:g");
+	
+		node = root = jsonData =ConstTickerData;  
+        var nodes = treemap.nodes(jsonData);
+
+        var children = nodes.filter(function(d) {
+            return !d.children;
+        });
+        var parents = nodes.filter(function(d) {
+            return d.children;
+        });
+
+        // create parent cells
+        var parentCells = chart.selectAll("g.cell.parent")
+                .data(parents, function(d) {
+                    return "p-" + d.name;
+                });
+        var parentEnterTransition = parentCells.enter()
+                .append("g")
+                .attr("class", "cell parent")
+                .on("click", function(d) {
+                    zoom(d);
+                });
+        parentEnterTransition.append("rect")
+                .attr("width", function(d) {
+                    return Math.max(0, d.dx - 1);
+                })
+                .attr("height", headerHeight)
+                .style("fill", headerColor);
+        parentEnterTransition.append('foreignObject')
+                .attr("class", "foreignObject")
+                .append("xhtml:body")
+                .attr("class", "labelbody")
+                .append("div")
+                .attr("class", "label");
+        // update transition
+        var parentUpdateTransition = parentCells.transition().duration(transitionDuration);
+        parentUpdateTransition.select(".cell")
+                .attr("transform", function(d) {
+                    return "translate(" + d.dx + "," + d.y + ")";
+                });
+        parentUpdateTransition.select("rect")
+                .attr("width", function(d) {
+                    return Math.max(0, d.dx - 1);
+                })
+                .attr("height", headerHeight)
+                .style("fill", headerColor);
+        parentUpdateTransition.select(".foreignObject")
+                .attr("width", function(d) {
+                    return Math.max(0, d.dx - 1);
+                })
+                .attr("height", headerHeight)
+                .select(".labelbody .label")
+                .attr("style", function(d) {
+                    return "width:" + Math.max(0, (d.dx - 1)) + "px;" +
+                           "height:" + headerHeight + "px;";
+                })
+                .text(function(d) {
+                    return d.name;
+                });
+        // remove transition
+        parentCells.exit()
+                .remove();
+
+        // create children cells
+        var childrenCells = chart.selectAll("g.cell.child")
+                .data(children, function(d) {
+                    return "c-" + d.name;
+                });
+        // enter transition
+        var childEnterTransition = childrenCells.enter()
+                .append("g")
+                .attr("class", "cell child")
+                .on("click", function(d) {
+                    zoom(node === d.parent ? root : d.parent);
+                });
+        childEnterTransition.append("rect")
+                .classed("background", true)
+                .style("fill", function(d) {                	return decimal2hex(d.sizecolor);					/*if(d.sizecolor > 5)                		return "#FF0000";                	else                		return "#04B404";*/
+                    //return color(d.parent.name);
+                });
+        childEnterTransition.append('foreignObject')
+                .attr("class", "foreignObject")
+                .attr("width", function(d) {
+                    return Math.max(0, d.dx - 1);
+                })
+                .attr("height", function(d) {
+                    return Math.max(0, d.dy - 1);
+                })
+                //.style("display", "none")
+                .style("display", "")
+                .append("xhtml:body")
+                .attr("class", "labelbody")
+                .append("div")
+                .attr("class", "label")
+                .text(function(d) {
+                    return d.name;
+                });
+        // update transition
+        childUpdateTransition = childrenCells.transition().duration(transitionDuration);
+        childUpdateTransition.select(".cell")
+                .attr("transform", function(d) {
+                    return "translate(" + d.x  + "," + d.y + ")";
+                });
+        childUpdateTransition.select("rect")
+                .attr("width", function(d) {
+                    return Math.max(0, d.dx - 1);
+                })
+                .attr("height", function(d) {
+                    return (d.dy - 1);
+                })
+                .style("fill", function(d) {                	return decimal2hex(d.sizecolor);					/*if(d.sizecolor > 5)                		return "#FF0000";                	else                		return "#04B404";*/
+                    //return color(d.parent.name);
+                });
+        childUpdateTransition.select(".foreignObject")
+                .attr("width", function(d) {
+                    return Math.max(0, d.dx - 1);
+                })
+                .attr("height", function(d) {
+                    return Math.max(0, d.dy - 1);
+                })
+                .select(".labelbody .label")
+                .attr("style", function(d) {
+                    return "width:"  + Math.max(0, (d.dx - 1)) + "px;" +
+                           "height:" + (d.dy - 1) + "px;";
+                })
+                .text(function(d) {
+                    return d.name;
+                });
+        // exit transition
+        childrenCells.exit()
+                .remove();
+
+        d3.select("select").on("change", function() {
+            console.log("select zoom(node)");
+            treemap.value(this.value == "size" ? size : count)
+                    .nodes(root);
+            zoom(node);
+        });
+		function size(d) {
+        return d.size;
+    }
+
+
+    function count(d) {
+        return 1;
+    }
+
+
+    //and another one
+    function textHeight(d) {
+        var ky = chartHeight / d.dy;
+        yscale.domain([d.y, d.y + d.dy]);
+        return (ky * d.dy) / headerHeight;
+    }
+
+    function getRGBComponents (color) {
+        var r = color.substring(1, 3);
+        var g = color.substring(3, 5);
+        var b = color.substring(5, 7);
+        return {
+            R: parseInt(r, 16),
+            G: parseInt(g, 16),
+            B: parseInt(b, 16)
+        };
+    }
+
+
+    function idealTextColor (bgColor) {
+        var nThreshold = 105;
+        var components = getRGBComponents(bgColor);
+        var bgDelta = (components.R * 0.299) + (components.G * 0.587) + (components.B * 0.114);
+        return ((255 - bgDelta) < nThreshold) ? "#000000" : "#ffffff";
+    }
+    
+      function layout(d) {
+    if (d.children) {
+      treemap.nodes({children: d.children});
+      d.children.forEach(function(c) {
+        c.x = d.x + c.x * d.dx;
+        c.y = d.y + c.y * d.dy;
+        c.dx *= d.dx;
+        c.dy *= d.dy;
+        c.parent = d;
+        layout(c);
+      });
+    }
+  }
+
+
+
+    function zoom(d) {
+    	this.treemap
+                .padding([headerHeight/(chartHeight/d.dy), 0, 0, 0])
+                .nodes(d);
+
+        // moving the next two lines above treemap layout messes up padding of zoom result
+        var kx = chartWidth  / d.dx;
+        var ky = chartHeight / d.dy;
+        var level = d;
+        
+		xscale.domain([d.x, d.x + d.dx]);
+        yscale.domain([d.y, d.y + d.dy]);
+
+        if (node != level) {
+            chart.selectAll(".cell.child .foreignObject").style("display", "");
+
+        }
+
+        var zoomTransition = chart.selectAll("g.cell").transition().duration(transitionDuration)
+                .attr("transform", function(d) {
+                    return "translate(" + xscale(d.x) + "," + yscale(d.y) + ")";
+                })
+                .each("start", function() {
+                    d3.select(this).select("label")
+                            .style("display", "");
+                })
+                .each("end", function(d, i) {
+                    if (!i && (level !== self.root)) {
+                        chart.selectAll(".cell.child")
+                            .filter(function(d) {
+                                return d.parent === self.node; // only get the children for selected group
+                            })
+                            .select(".foreignObject")
+                            .style("display", "")
+                            .style("color", function(d) {
+                                return idealTextColor(color(d.parent.name));
+                            });
+                    }
+                });
+
+        zoomTransition.select(".foreignObject")
+                .attr("width", function(d) {
+                    return Math.max(0, kx * d.dx - 1);
+                })
+                .attr("height", function(d) {
+                    return d.children ? headerHeight: Math.max(0, ky * d.dy - 1);
+                })
+                .select(".labelbody .label")
+                .attr("style", function(d) {
+                    return "width:"  + Math.max(0, (kx * d.dx - 1)) + "px;" +
+                           "height:" + (d.children ? headerHeight + "px": ky * d.dy - 1 + "px;");
+                })
+                .text(function(d) {
+                    return d.name;
+                });
+
+        // update the width/height of the rects
+        zoomTransition.select("rect")
+                .attr("width", function(d) {
+                    return Math.max(0, kx * d.dx - 1);
+                })
+                .attr("height", function(d) {
+                    return d.children ? headerHeight : Math.max(0, ky * d.dy - 1);
+                })
+                .style("fill", function(d) {                	return d.children ? headerColor : decimal2hex(d.sizecolor);					
+                    //return d.children ? headerColor : color(d.parent.name);
+                });
+
+        node = d;
+
+        if (d3.event) {
+            d3.event.stopPropagation();
+        }
+    }
+	        zoom(node);
+}      
+setInterval(function() {
+
+	if(document.getElementById("selectName").value != '')
+	{
+		if(ConstTickerData != null)
+		{
+			for(var i=0;i<ConstTickerData.children.length;i++)
+			{
+				for(var j=0;j<ConstTickerData.children[i].children.length;j++)
+				{
+					$.getJSON('http://localhost:8080/api/1.0/?Procedure=@AdHoc&Parameters=[" select top 1 symbol, ask_price , bid_price , '+i+' as indexi , '+j+'  as indexj from quotes where symbol = \''+ConstTickerData.children[i].children[j].name+'\' order by time desc"]&jsonp=?',
+						  {},function(response)
+						  {
+						  if(response.results[0].data.length != 0)
+						  {
+						  	if(response.results[0].data[0][1] > 0 && response.results[0].data[0][2] > 0 && response.results[0].data[0][1] > response.results[0].data[0][2])
+						  		//ConstTickerData.children[response.results[0].data[0][3]].children[response.results[0].data[0][4]].size = (response.results[0].data[0][1]-response.results[0].data[0][2])/((response.results[0].data[0][1]+response.results[0].data[0][2]));						  		var colrdata = (response.results[0].data[0][1]-response.results[0].data[0][2])/((response.results[0].data[0][1]+response.results[0].data[0][2]));						  		ConstTickerData.children[response.results[0].data[0][3]].children[response.results[0].data[0][4]].sizecolor = colrdata*1000*1000 >16777215 ? (colrdata*1000 > 16777215?colrdata:colrdata*1000): colrdata*1000*1000;						  		//alert(decimal2hex((response.results[0].data[0][1]-response.results[0].data[0][2])/((response.results[0].data[0][1]+response.results[0].data[0][2]))*1000));						  }
+					});				
+				}
+			}
+		}		//redraw();		if(treemap != null)			treemap.nodes(ConstTickerData);		if(childUpdateTransition != null)		{			childUpdateTransition.select("rect")	                .style("fill", function(d) {		                return decimal2hex(d.sizecolor);	                });        }
+	}
+}, 2000);     function toColor(num) {    num >>>= 0;    var b = num & 0xFF,        g = (num & 0xFF00) >>> 8,        r = (num & 0xFF0000) >>> 16,        a = ( (num & 0xFF000000) >>> 24 ) / 255 ;    //return "rgba(" + [r, g, b, a].join(",") + ")";    //alert('num:'+num+ "  rgb(" + [r, g, b].join(",") + ")");     return "rgb(" + [r, g, b].join(",") + ")";}function SelectColor(d){	if(d.sizecolor > 5)		return "#FF0000";	else		return "#04B404";}function decimal2hex(d) {    var digits = "0123456789ABCDEF";    if (d == 0) return "0";    var hex = "";    while (d > 0) {       var digit = d % 16;                       hex = digits.charAt(digit) + hex;         d = d / 16;    }    return "#"+hex.substring(hex.length-6);}
+</script>
+
+</html>
